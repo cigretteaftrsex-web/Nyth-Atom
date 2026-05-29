@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nyth Atom</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans Myanmar', sans-serif;
+            background-color: #0a0f1d;
+            color: white;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .animate-spin-slow { animation: spin 3s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen relative">
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="flex flex-col items-center justify-center min-h-screen p-8 text-center">
+        <div class="w-24 h-24 bg-green-500 rounded-[30px] flex items-center justify-center text-4xl font-black shadow-lg shadow-green-500/30 mb-6">N</div>
+        <h1 class="text-4xl font-black text-green-400 mb-2">Nyth Atom</h1>
+        <p class="text-slate-400 mb-10">ATOM ဖုန်းနံပါတ်ဖြင့် လော့ဂ်အင်ဝင်ပါ</p>
+
+        <!-- Phone Step -->
+        <div id="step-phone" class="w-full space-y-4">
+            <div class="glass rounded-2xl p-1">
+                <div class="flex items-center px-4 py-4">
+                    <span class="text-slate-500 font-bold border-r border-slate-700 pr-4 mr-4">+95</span>
+                    <input type="tel" id="msisdn" placeholder="09 7XX XXX XXX" class="bg-transparent w-full outline-none text-lg placeholder:text-slate-600">
+                </div>
+            </div>
+            <button onclick="sendOtp()" id="btn-send" class="w-full bg-green-600 hover:bg-green-500 py-4 rounded-2xl font-bold text-lg transition-all active:scale-95 shadow-xl shadow-green-600/20">
+                OTP ကုဒ်ပို့ရန်
+            </button>
+        </div>
+
+        <!-- OTP Step (Hidden by default) -->
+        <div id="step-otp" class="w-full space-y-4 hidden">
+            <input type="number" id="otp-code" placeholder="OTP Code" class="glass w-full py-4 text-center text-3xl tracking-[15px] rounded-2xl outline-none focus:border-green-500">
+            <button onclick="verifyOtp()" id="btn-verify" class="w-full bg-green-600 py-4 rounded-2xl font-bold text-lg active:scale-95">
+                အတည်ပြုမည်
+            </button>
+            <button onclick="location.reload()" class="text-slate-500 text-sm">နံပါတ်ပြန်ပြင်ရန်</button>
+        </div>
+    </div>
+
+    <!-- DASHBOARD SCREEN (Hidden by default) -->
+    <div id="dashboard-screen" class="hidden pb-24">
+        <!-- Header -->
+        <div class="p-6 flex justify-between items-center sticky top-0 z-30 bg-[#0a0f1d]/80 backdrop-blur-xl border-b border-white/5">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-2xl font-black">N</div>
+                <div>
+                    <h2 class="font-bold text-lg">Nyth Atom</h2>
+                    <p id="user-phone" class="text-xs text-slate-500 font-mono"></p>
+                </div>
+            </div>
+            <button onclick="logout()" class="p-3 bg-red-500/10 text-red-500 rounded-2xl active:scale-90 transition-transform">
+                <i data-lucide="log-out" size="20"></i>
+            </button>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- Balance Card -->
+            <div class="bg-gradient-to-br from-green-600 to-emerald-800 rounded-[40px] p-8 shadow-2xl relative overflow-hidden group">
+                <div class="relative z-10">
+                    <p class="text-white/70 text-sm mb-1">လက်ကျန်ဖုန်းဘေလ်</p>
+                    <div class="flex items-baseline gap-2">
+                        <span id="main-balance" class="text-5xl font-black tracking-tighter">0</span>
+                        <span class="text-xl font-bold opacity-80">Ks</span>
+                    </div>
+                    <div class="mt-6">
+                        <span class="bg-white/20 text-[10px] px-3 py-1 rounded-full backdrop-blur-md font-bold uppercase tracking-wider">PREPAID ACCOUNT</span>
+                    </div>
+                </div>
+                <i data-lucide="wallet" class="absolute -right-4 -bottom-4 w-32 h-32 opacity-10 rotate-12"></i>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 gap-4">
+                <div class="glass p-6 rounded-[35px]">
+                    <i data-lucide="wifi" class="text-blue-400 mb-3"></i>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase">Data Remaining</p>
+                    <p class="text-2xl font-black"><span id="data-balance">0</span> <small class="text-xs font-normal">MB</small></p>
+                </div>
+                <div class="glass p-6 rounded-[35px]">
+                    <i data-lucide="star" class="text-yellow-400 mb-3"></i>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase">Atom Points</p>
+                    <p class="text-2xl font-black"><span id="atom-points">0</span> <small class="text-xs font-normal">pts</small></p>
+                </div>
+            </div>
+
+            <!-- Star Status -->
+            <div class="glass rounded-[35px] p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="award" class="text-purple-400" size="18"></i>
+                        <span class="font-bold text-sm">Tier Status</span>
+                    </div>
+                    <span id="star-label" class="text-[10px] bg-green-500/20 text-green-400 px-3 py-1 rounded-full font-bold uppercase tracking-widest">Loading</span>
+                </div>
+                <div class="h-3 w-full bg-slate-900 rounded-full overflow-hidden mb-2">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-green-500 to-emerald-400 rounded-full" style="width: 0%"></div>
+                </div>
+                <p id="next-tier" class="text-[10px] text-slate-500 leading-relaxed"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div id="nav-bar" class="fixed bottom-0 left-0 right-0 max-w-md mx-auto glass backdrop-blur-2xl border-t border-white/5 h-20 flex justify-around items-center px-8 z-40 hidden">
+        <i data-lucide="home" class="text-green-500"></i>
+        <i data-lucide="layout-grid" class="text-slate-600"></i>
+        <div class="w-14 h-14 bg-green-600 rounded-2xl -mt-12 flex items-center justify-center shadow-2xl shadow-green-600/50 border-4 border-[#0a0f1d] active:scale-90 transition-transform">
+            <i data-lucide="gamepad-2" class="text-white"></i>
+        </div>
+        <i data-lucide="gift" class="text-slate-600"></i>
+        <i data-lucide="user" class="text-slate-600"></i>
+    </div>
+
+    <script>
+        // API Configuration
+        const BASE_URL = 'https://store.atom.com.mm/mytmapi/v1/my';
+        const PROXY = 'https://api.allorigins.win/raw?url='; // CORS Proxy
+
+        let codeHeader = '';
+
+        async function apiCall(path, method = 'GET', body = null) {
+            const token = localStorage.getItem('atom_token');
+            const url = `${BASE_URL}${path}`;
+            const finalUrl = PROXY + encodeURIComponent(url);
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'user-agent': 'MyTM/4.13.0/Android/30',
+                'x-server-select': 'production'
+            };
+            if (token) headers['authorization'] = `Bearer ${token}`;
+
+            const options = { method, headers };
+            if (body) options.body = JSON.stringify(body);
+
+            const response = await fetch(finalUrl, options);
+            return await response.json();
+        }
+
+        async function sendOtp() {
+            const msisdn = document.getElementById('msisdn').value;
+            const formatted = '959' + msisdn.replace(/^09|^959|^9/, '');
+            
+            document.getElementById('btn-send').innerText = 'ခေတ္တစောင့်ပါ...';
+            
+            const res = await apiCall('/local-auth/send-otp?v=4.14.1', 'POST', { msisdn: formatted });
+            
+            if (res.status === 'success') {
+                codeHeader = res.data.attribute.code;
+                document.getElementById('step-phone').classList.add('hidden');
+                document.getElementById('step-otp').classList.remove('hidden');
+            } else {
+                alert('Error: ' + res.message);
+                document.getElementById('btn-send').innerText = 'OTP ကုဒ်ပို့ရန်';
+            }
+        }
+
+        async function verifyOtp() {
+            const msisdn = document.getElementById('msisdn').value;
+            const formatted = '959' + msisdn.replace(/^09|^959|^9/, '');
+            const otp = document.getElementById('otp-code').value;
+
+            document.getElementById('btn-verify').innerText = 'စစ်ဆေးနေသည်...';
+
+            const res = await apiCall('/local-auth/verify-otp?v=4.14.1', 'POST', {
+                msisdn: formatted,
+                code: codeHeader,
+                otp: otp
+            });
+
+            if (res.status === 'success') {
+                localStorage.setItem('atom_token', res.data.attribute.token);
+                localStorage.setItem('user_id', res.data.attribute.user_id);
+                localStorage.setItem('msisdn', res.data.attribute.msisdn);
+                loadDashboard();
+            } else {
+                alert('OTP မှားယွင်းနေပါသည်။');
+                document.getElementById('btn-verify').innerText = 'အတည်ပြုမည်';
+            }
+        }
+
+        async function loadDashboard() {
+            const msisdn = localStorage.getItem('msisdn');
+            const userId = localStorage.getItem('user_id');
+
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('dashboard-screen').classList.remove('hidden');
+            document.getElementById('nav-bar').classList.remove('hidden');
+            document.getElementById('user-phone').innerText = '+' + msisdn;
+
+            // Fetch Balance
+            const balRes = await apiCall(`/lightweight-balance?msisdn=${msisdn}&userid=${userId}&v=4.14.1`);
+            if (balRes.status === 'success') {
+                const attr = balRes.data.attribute;
+                document.getElementById('main-balance').innerText = attr.mainBalance.value;
+                document.getElementById('data-balance').innerText = attr.packsPieData.data.remaining;
+            }
+
+            // Fetch Points
+            const ptsRes = await apiCall(`/point-system/dashboard?msisdn=${msisdn}&userid=${userId}&v=4.14.1`);
+            if (ptsRes.status === 'success') {
+                const attr = ptsRes.data.attribute;
+                document.getElementById('atom-points').innerText = attr.totalPoint;
+                document.getElementById('star-label').innerText = attr.starStatusLabel;
+                const prog = (attr.progressBar.earnedPoint / attr.progressBar.totalRequiredPoint) * 100;
+                document.getElementById('progress-bar').style.width = prog + '%';
+                document.getElementById('next-tier').innerText = attr.progressBar.nextTierEligibilityText;
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        // Check if already logged in
+        window.onload = () => {
+            lucide.createIcons();
+            if (localStorage.getItem('atom_token')) {
+                loadDashboard();
+            }
+        };
+    </script>
+</body>
+</html>
