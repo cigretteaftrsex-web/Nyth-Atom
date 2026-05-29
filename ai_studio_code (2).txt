@@ -1,0 +1,87 @@
+"use client";
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function LoginPage() {
+  const [msisdn, setMsisdn] = useState('');
+  const [otp, setOtp] = useState('');
+  const [step, setStep] = useState(1);
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const formatPhone = (num: string) => "9" + num.replace(/^09|^959|^9/, '');
+
+  const sendOtp = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/atom/mytmapi/v1/my/local-auth/send-otp?v=4.14.1`, {
+        method: 'POST',
+        body: JSON.stringify({ msisdn: formatPhone(msisdn) })
+      });
+      const result = await res.json();
+      if (result.status === 'success') {
+        setCode(result.data.attribute.code);
+        setStep(2);
+      }
+    } finally { setLoading(false); }
+  };
+
+  const verifyOtp = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/atom/mytmapi/v1/my/local-auth/verify-otp?v=4.14.1`, {
+        method: 'POST',
+        body: JSON.stringify({ msisdn: formatPhone(msisdn), code, otp })
+      });
+      const result = await res.json();
+      if (result.status === 'success') {
+        localStorage.setItem('atom_token', result.data.attribute.token);
+        localStorage.setItem('user_id', result.data.attribute.user_id.toString());
+        localStorage.setItem('msisdn', result.data.attribute.msisdn);
+        router.push('/dashboard');
+      }
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0a0f1d] flex items-center justify-center p-6 text-white font-['Noto_Sans_Myanmar']">
+      <div className="w-full max-w-md bg-white/5 backdrop-blur-2xl rounded-[40px] p-10 border border-white/10 shadow-2xl">
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-green-500 rounded-3xl mx-auto mb-5 flex items-center justify-center text-4xl font-black shadow-lg shadow-green-500/20">N</div>
+          <h1 className="text-3xl font-bold tracking-tight text-green-400">Nyth Atom</h1>
+          <p className="text-slate-400 mt-2 text-sm">Login Your ATom Phone number</p>
+        </div>
+
+        {step === 1 ? (
+          <div className="space-y-6">
+            <div className="bg-slate-900/50 rounded-2xl p-1 border border-slate-700">
+              <div className="flex items-center px-4 py-3">
+                <span className="text-slate-400 font-bold border-r border-slate-700 pr-4 mr-4">+95</span>
+                <input 
+                  type="tel" placeholder="09 7XX XXX XXX"
+                  className="bg-transparent w-full outline-none text-lg"
+                  value={msisdn} onChange={(e) => setMsisdn(e.target.value)}
+                />
+              </div>
+            </div>
+            <button onClick={sendOtp} disabled={loading} className="w-full bg-green-600 hover:bg-green-500 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-green-600/30">
+              {loading ? "ခေတ္တစောင့်ပါ..." : "SEND OTP"}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <input 
+              type="number" placeholder="OTP ခြောက်လုံးရိုက်ထည့်ပါ"
+              className="w-full bg-slate-900/50 border border-slate-700 rounded-2xl py-4 text-center text-2xl tracking-[10px] outline-none focus:border-green-500"
+              value={otp} onChange={(e) => setOtp(e.target.value)}
+            />
+            <button onClick={verifyOtp} disabled={loading} className="w-full bg-green-600 py-4 rounded-2xl font-bold transition-all shadow-lg shadow-green-600/30">
+              VERIFY OTP
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
